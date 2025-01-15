@@ -190,6 +190,12 @@ matrix_t matrix_product(matrix_t A, matrix_t B) {
 }
 */
 
+transformation_t composition(transformation_t A, transformation_t B) {
+    transformation_t r;
+    matrix_product(&A, &B, &r);
+    return r;
+}
+
 transformation_t identity_matrix() {
     return (transformation_t){
         1.0f, 0.0f, 0.0f, 0.0f,
@@ -234,9 +240,9 @@ transformation_t rotation_matrix(vector3_t axis, float theta) {
 
 transformation_t camera_transform(vector3_t eye_basis[3], vector3_t eye, vector3_t object) {
     return (transformation_t) {
-        eye_basis[0].x, eye_basis[0].y, eye_basis[0].z, -(eye_basis[0].x*eye.x + eye_basis[0].x*eye.y + eye_basis[0].z*eye.z),
-        eye_basis[1].x, eye_basis[1].y, eye_basis[1].z, -(eye_basis[1].x*eye.x + eye_basis[1].x*eye.y + eye_basis[1].z*eye.z),
-        eye_basis[2].x, eye_basis[2].y, eye_basis[2].z, -(eye_basis[2].x*eye.x + eye_basis[2].x*eye.y + eye_basis[2].z*eye.z),
+        eye_basis[0].x, eye_basis[0].y, eye_basis[0].z, -(eye_basis[0].x*eye.x + eye_basis[0].y*eye.y + eye_basis[0].z*eye.z),
+        eye_basis[1].x, eye_basis[1].y, eye_basis[1].z, -(eye_basis[1].x*eye.x + eye_basis[1].y*eye.y + eye_basis[1].z*eye.z),
+        eye_basis[2].x, eye_basis[2].y, eye_basis[2].z, -(eye_basis[2].x*eye.x + eye_basis[2].y*eye.y + eye_basis[2].z*eye.z),
                      0,              0,              0,                                                                     1
     };
 }

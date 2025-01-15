@@ -95,6 +95,7 @@ void setup_swapchain(renderer_t *renderer, window_t window) {
 void terminate_swapchain(renderer_t *renderer) {
     for(uint32_t i = 0; i < renderer->swapchain_image_count; i++) {
         vkDestroyImageView(renderer->logical_device, renderer->swapchain_image_views[i], NULL);
+
     }
 
     vkDestroySwapchainKHR(renderer->logical_device, renderer->swapchain, NULL);
@@ -115,6 +116,7 @@ void recreate_swapchain(renderer_t *renderer, window_t window) {
     vkDeviceWaitIdle(renderer->logical_device);
 
     terminate_swapchain(renderer);
+    destroy_framebuffers(renderer);
     setup_swapchain(renderer, window);
     setup_framebuffers(renderer);
 }

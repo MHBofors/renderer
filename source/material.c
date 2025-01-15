@@ -53,7 +53,7 @@ material_pipeline_t build_textured_mesh_pipeline(VkDevice logical_device, VkRend
 
     set_input_topology(&details, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     set_polygon_mode(&details, VK_POLYGON_MODE_FILL);
-    set_cull_mode(&details, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    set_cull_mode(&details, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
     set_multisampler_none(&details);
     set_color_blending_none(&details, &blend_attachment);
     set_blend_attachment_none(&blend_attachment);
@@ -136,7 +136,10 @@ VkSampler create_linear_sampler(VkDevice logical_device) {
     VkSamplerCreateInfo create_info = {
         .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
         .magFilter = VK_FILTER_LINEAR,
-        .minFilter = VK_FILTER_LINEAR
+        .minFilter = VK_FILTER_LINEAR,
+        .addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+        .addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+        .addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT
     };
 	
 	vkCreateSampler(logical_device, &create_info, NULL, &sampler);

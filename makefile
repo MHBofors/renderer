@@ -7,12 +7,12 @@ BUILD_DIR = build
 BIN_DIR = bin
 SHADER_DIR = shaders
 
-CFLAGS = -std=c17 -g -Wall -O2 -I./$(INCLUDE_DIR)
+CFLAGS = -std=c17 -g -Wall -O2 -I./$(INCLUDE_DIR) -lm
 
-ifeq ($(OS), WINDOWS) 
-	LDFLAGS = -lglfw3 -lvulkan-1 -lpthread -lm
-else
+ifneq ($(OS), MACOS) 
 	LDFLAGS = -lglfw -lvulkan -ldl -lpthread -lX11 -lm -lSDL2 -rpath /usr/local/lib
+else
+	LDFLAGS = -lm -lglfw3 -lvulkan-1 -lpthread
 endif
 
 # Source files

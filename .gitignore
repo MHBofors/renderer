@@ -1,2 +1,5 @@
 bin/*
 build/*
+.vscode/*
+*.spv
+shaders/compute.spv
