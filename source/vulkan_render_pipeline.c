@@ -57,6 +57,84 @@ void create_render_pass_simple(VkRenderPass *render_pass, VkDevice logical_devic
     }
 }
 
+void create_render_pass_depth_buffered(VkRenderPass *render_pass, VkDevice logical_device, VkFormat render_image_format, VkFormat depth_image_format) {
+    VkAttachmentDescription color_attachment = {
+        .format = render_image_format,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+    };
+    
+    VkAttachmentReference color_attachment_ref = {
+        .attachment = 0,
+        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+    };
+    
+    VkAttachmentDescription depth_attachment = {
+        .format = depth_image_format,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+    };
+    
+    VkAttachmentReference depth_attachment_ref = {
+        .attachment = 1,
+        .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+    };
+
+    VkSubpassDescription subpass = {
+        .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+        .colorAttachmentCount = 1,
+        .pColorAttachments = &color_attachment_ref,
+        .pDepthStencilAttachment = &depth_attachment_ref
+    };
+
+    VkSubpassDependency color_dependency = {
+        .srcSubpass = VK_SUBPASS_EXTERNAL,
+        .dstSubpass = 0,
+        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+        .srcAccessMask = 0,
+        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+    };
+    
+    VkSubpassDependency depth_dependency = {
+        .srcSubpass = VK_SUBPASS_EXTERNAL,
+        .dstSubpass = 0,
+        .srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+        .srcAccessMask = 0,
+        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+    };
+
+    VkSubpassDependency dependencies[2] = {color_dependency, depth_dependency};
+    
+    VkAttachmentDescription attachments[2] = {color_attachment, depth_attachment};
+
+    VkRenderPassCreateInfo create_info = {
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+        .attachmentCount = 2,
+        .pAttachments = attachments,
+        .subpassCount = 1,
+        .pSubpasses = &subpass,
+        .dependencyCount = 2,
+        .pDependencies = &dependencies
+    };
+    
+    if (vkCreateRenderPass(logical_device, &create_info, NULL, render_pass) != VK_SUCCESS) {
+        printf("Failed to create render pass\n");
+        exit(1);
+    }
+}
+
 void clear_pipeline_details(pipeline_details_t *pipeline_details) {
     *pipeline_details = (pipeline_details_t){
         .stage_count     = 0,
@@ -116,6 +194,18 @@ void set_depth_test_none(pipeline_details_t *pipeline_details) {
     pipeline_details->depth_stencil.depthTestEnable = VK_FALSE;
     pipeline_details->depth_stencil.depthWriteEnable = VK_FALSE;
     pipeline_details->depth_stencil.depthCompareOp = VK_COMPARE_OP_NEVER;
+    pipeline_details->depth_stencil.depthBoundsTestEnable = VK_FALSE;
+    pipeline_details->depth_stencil.stencilTestEnable = VK_FALSE;
+    pipeline_details->depth_stencil.front = (VkStencilOpState){};
+    pipeline_details->depth_stencil.back = (VkStencilOpState){};
+    pipeline_details->depth_stencil.minDepthBounds = 0.0f;
+    pipeline_details->depth_stencil.maxDepthBounds = 1.0f;
+}
+
+void set_depth_test(pipeline_details_t *pipeline_details) {
+    pipeline_details->depth_stencil.depthTestEnable = VK_TRUE;
+    pipeline_details->depth_stencil.depthWriteEnable = VK_TRUE;
+    pipeline_details->depth_stencil.depthCompareOp = VK_COMPARE_OP_LESS;
     pipeline_details->depth_stencil.depthBoundsTestEnable = VK_FALSE;
     pipeline_details->depth_stencil.stencilTestEnable = VK_FALSE;
     pipeline_details->depth_stencil.front = (VkStencilOpState){};

@@ -8,8 +8,8 @@
 #include "window.h"
 
 
-const uint32_t WIDTH = 800;
-const uint32_t HEIGHT = 800;
+const uint32_t WIDTH = 1920;
+const uint32_t HEIGHT = 1080;
 
 void create_surface(VkSurfaceKHR *surface, VkInstance instance, window_t window) {
     if (glfwCreateWindowSurface(instance, window, NULL, surface) != VK_SUCCESS) {
@@ -57,8 +57,15 @@ void initialise_window(window_t *window) {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    
-    *window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", NULL, NULL);
+    glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); 
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_REFRESH_RATE, 144);
+
+    GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+    *window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", monitor, NULL);
+    //glfwSetWindowMonitor(window, monitor, 0, 0, 1920, 1080, 144);
+
     if(window == NULL) {
         error(1, "Failed to create window");
     }

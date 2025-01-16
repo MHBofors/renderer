@@ -41,17 +41,12 @@ typedef struct transformation_t {
 } transformation_t;
 
 transformation_t identity_matrix();
-
 transformation_t translation_matrix(vector3_t u);
-
 transformation_t scaling_matrix(vector3_t u);
-
 transformation_t rotation_matrix(vector3_t axis, float theta);
-
 transformation_t camera_transform(vector3_t eye_basis[3], vector3_t eye, vector3_t object);
-
 transformation_t camera_matrix(vector3_t eye, vector3_t object, vector3_t up);
-
 transformation_t perspective_matrix(float fov, float aspect_ratio, float near, float far);
+transformation_t transform(transformation_t A, transformation_t B);
 
 #endif /* graphics_matrices_h */

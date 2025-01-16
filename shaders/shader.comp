@@ -1,6 +1,6 @@
 #version 460
-#define MAX_ITER 512
-#define PALLETE_SIZE 6
+#define MAX_ITER 1024
+#define PALLETE_SIZE 3
 #define PI (3.1415926535897932384626433832795)
 #define PHI 1.618033988
 #define R_SQUARED 1e15
@@ -28,13 +28,10 @@ layout(push_constant) uniform constants {
 vec2 c = vec2(re, im);
 
 vec3 palette[PALLETE_SIZE + 1] = {
-    vec3(.95, .075, .075),
-    vec3(.85, .25, .075),
-    vec3(.175, .25, .175),
-    vec3(.075, .075, .65),
-    vec3(.075, .075, .75),
-    vec3(.45, .075, .55),
-    vec3(.95, .075, .075),
+    vec3(.83, 0.75, 1),
+    vec3(.33, 0.75, 1),
+    vec3(.67, 0.75, 1),
+    vec3(.83, 0.75, 1)
 };
 
 /*
@@ -42,6 +39,30 @@ vec3 cross(vec3 u, vec3 v) {
     return vec3(u.y*v.z - u.z*v.y, u.z*v.x - u.x*v.z, u.x*v.y - u.y*v.x);
 }
 */
+
+float fmax(float a, float b) {
+    return (a < b ? b : a);
+}
+
+float fmin(float a, float b) {
+    return (a < b ? a : b);
+}
+
+float fabs(float x) {
+    return (0 < x ? x : -x);
+}
+
+float p(float h){
+    return fmax(0, fmin(1, 2*(1 - fabs(h))));
+}
+
+vec3 hsv_to_rgb(float H, float S, float V) {
+    float h = 3*(fract(H - 0.5) - 0.5);
+    float s = V*(1-S);
+    float v = V-s;
+
+    return v*vec3(1-p(h - 0.5), p(h - 1.0/3.0), p(h - 2.0/3.0)) + s;
+}
 
 float unit_wave(float x) {
     return (1.0 - sin(x)) * 0.5;
@@ -140,11 +161,11 @@ uint julia2_number(vec2 z) {
 
 uint julia3_number(vec2 z) {
     uint iteration = 0;
-    while(z.x*z.x + z.y*z.y < 4056.0f && iteration++ < MAX_ITER) {
+    while(z.x*z.x + z.y*z.y < float(2<<20) && iteration++ < MAX_ITER) {
         vec2 z_squared = product(z, z);
         vec2 z_cubed = product(z_squared, z);
         vec2 z_quint = product(z_squared, z_cubed);
-        z = cexp(divide(c, (z_quint)));//Flower
+        z = (cexp(0.75*divide(c, (z_quint))) + c);//Flower
         //z = 0.6*clog(divide(c, (z_quint)));
         //z = z_quint + c + z/float(iteration);
     }
@@ -174,7 +195,7 @@ vec2 julia4_number(vec2 z) {
 }
 
 float normalised_iteration_number(uint n) {
-    return mod(pow(pow(float(n)/float(MAX_ITER), 0.2)*PALLETE_SIZE, 1.5), PALLETE_SIZE);
+    return mod(pow(pow(float(n)/float(MAX_ITER), 0.1)*PALLETE_SIZE, 0.1), PALLETE_SIZE);
 }
 
 vec3 color(float v) {
@@ -277,21 +298,24 @@ vec3 dem_j(vec2 z, float t) {
 void main() {
     ivec2 texel_coordinate = ivec2(gl_GlobalInvocationID.xy);
 	ivec2 size = imageSize(image);
+    float u = (gl_GlobalInvocationID.x)/float(size.x);
+    float v = (gl_GlobalInvocationID.y)/float(size.y);
 
-    float aspect_ratio = float(size.y)/float(size.x);
+    float a = u*x_max + (1 - u)*x_min;
+    float b = v*y_max + (1 - v)*y_min;
 
-    vec2 z = -vec2(aspect_ratio*(float(gl_GlobalInvocationID.x)/float(size.x) - 0.5), float(gl_GlobalInvocationID.y)/float(size.y) - 0.5);
-    z *= 2.82;
-    z *= 0.125;
-    //z *= 5.25;
-    //z.x -= 0.5;
-    //z.y += 0.00125;
+    vec2 z = vec2(a,b);
 
     //uint m = julia3_number(z);
-    //float v = normalised_iteration_number(m);
-    float v = d(z);
-    if(v > 0) {
-        imageStore(image, texel_coordinate, vec4(color(-log(v)-8*t), 1));
+    //float d = normalised_iteration_number(m);
+    float d = d(z);
+    if(d > 0) {
+        //vec3 hsv = color_alt(-t-log(d)/4);
+        vec2 w = vec2(cos(0.25*t), sin(0.25*t));
+        z = cmult(w, z);
+        vec3 hsv = vec3(16*atan(z.x, z.y)/PI-log(d)/10, 0.5*(1+exp(-d)), 0.5*(1+exp(-d)));
+        //vec3 hsv = vec3(((length(z)*(1+unit_wave(t))+t-log(d))), 0.5*(1+exp(-d)), 0.5*(1+exp(-d)));
+        imageStore(image, texel_coordinate, vec4(hsv_to_rgb(hsv.x, hsv.y, hsv.z), 1));
     } else {
         vec4 color_gradient = vec4(color_gradient(z, t), 1.0);
         imageStore(image, texel_coordinate, color_gradient);
@@ -302,7 +326,7 @@ void main() {
         vec4 color_gradient = vec4(color_gradient(z, t), 1.0);
         imageStore(image, texel_coordinate, color_gradient);
     } else {
-        imageStore(image, texel_coordinate, vec4(color_alt(-t-log(v)), 1));
-    }
-    */
+        vec3 hsv = color_alt(8*t+4*log(d));
+        imageStore(image, texel_coordinate, vec4(hsv_to_rgb(hsv.x, hsv.y, hsv.z), 1));
+    }*/
 }

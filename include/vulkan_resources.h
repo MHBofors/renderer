@@ -16,7 +16,7 @@
 uint32_t select_memory_type(VkPhysicalDevice physical_device, uint32_t type_filter, VkMemoryPropertyFlags properties);
 
 
-VkImageView create_image_view(VkImage image, VkDevice logical_device, uint32_t mip_levels, VkFormat image_format);
+VkImageView create_image_view(VkImage image, VkDevice logical_device, uint32_t mip_levels, VkFormat image_format, VkImageAspectFlags aspect_flags);
 void create_image_view2(VkImageView *image_view, VkImage image, VkDevice logical_device, uint32_t mip_levels, VkFormat image_format);
 
 void create_buffer(VkBuffer *buffer, VkDeviceMemory *buffer_memory, VkDevice logical_device, VkPhysicalDevice physical_device, VkDeviceSize device_size, VkBufferUsageFlagBits buffer_usage, VkMemoryPropertyFlags properties);

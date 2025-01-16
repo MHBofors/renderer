@@ -31,6 +31,7 @@ typedef struct pipeline_details_t {
 void create_render_pass(VkRenderPass *render_pass, uint32_t attachment_count, VkAttachmentDescription *attachment_descriptions, VkSubpassDescription *sub_pass);
 
 void create_render_pass_simple(VkRenderPass *render_pass, VkDevice logical_device, VkFormat image_format);
+void create_render_pass_depth_buffered(VkRenderPass *render_pass, VkDevice logical_device, VkFormat render_image_format, VkFormat depth_image_format);
 
 void clear_pipeline_details(pipeline_details_t *pipeline_details);
 
@@ -47,6 +48,7 @@ void set_color_blending_none(pipeline_details_t *pipeline_details, VkPipelineCol
 void set_blend_attachment_none(VkPipelineColorBlendAttachmentState *color_blend_attachment);
 
 void set_depth_test_none(pipeline_details_t *pipeline_details);
+void create_render_pass_depth_buffered(VkRenderPass *render_pass, VkDevice logical_device, VkFormat render_image_format, VkFormat depth_image_format);
 
 VkPipeline create_graphics_pipeline(VkDevice logical_device, VkPipelineLayout pipeline_layout, VkRenderPass render_pass, pipeline_details_t *pipeline_details);
 

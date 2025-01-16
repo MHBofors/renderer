@@ -57,7 +57,7 @@ material_pipeline_t build_textured_mesh_pipeline(VkDevice logical_device, VkRend
     set_multisampler_none(&details);
     set_color_blending_none(&details, &blend_attachment);
     set_blend_attachment_none(&blend_attachment);
-    set_depth_test_none(&details);
+    set_depth_test(&details);
 
     details.stage_count = 2;
     details.shader_stages = shader_modules;

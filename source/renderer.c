@@ -37,7 +37,9 @@ void initialise_renderer(renderer_t *renderer, window_t window) {
     create_logical_device(&renderer->logical_device, renderer->physical_device, &renderer->queues, device_extension_count, device_extensions);
 
     setup_swapchain(renderer, window);
-    setup_render_pass(renderer);
+
+    setup_depth_resources(renderer);
+    setup_render_pass(renderer);    
     setup_framebuffers(renderer);
 
     queue_family_indices indices = find_queue_families(renderer->physical_device);
@@ -51,6 +53,7 @@ void terminate_renderer(renderer_t *renderer) {
     vkDeviceWaitIdle(renderer->logical_device);
 
     destroy_framebuffers(renderer);
+    destroy_depth_resources(renderer);
     terminate_swapchain(renderer);
     
     destroy_frame_resources(renderer);
@@ -88,14 +91,13 @@ void setup_swapchain(renderer_t *renderer, window_t window) {
     vkGetSwapchainImagesKHR(renderer->logical_device, renderer->swapchain, &renderer->swapchain_image_count, renderer->swapchain_images);
 
     for(uint32_t i = 0; i < renderer->swapchain_image_count; i++) {
-        renderer->swapchain_image_views[i] = create_image_view(renderer->swapchain_images[i], renderer->logical_device, 1, renderer->swapchain_image_format);
+        renderer->swapchain_image_views[i] = create_image_view(renderer->swapchain_images[i], renderer->logical_device, 1, renderer->swapchain_image_format, VK_IMAGE_ASPECT_COLOR_BIT);
     }
 }
 
 void terminate_swapchain(renderer_t *renderer) {
     for(uint32_t i = 0; i < renderer->swapchain_image_count; i++) {
         vkDestroyImageView(renderer->logical_device, renderer->swapchain_image_views[i], NULL);
-
     }
 
     vkDestroySwapchainKHR(renderer->logical_device, renderer->swapchain, NULL);
@@ -117,18 +119,39 @@ void recreate_swapchain(renderer_t *renderer, window_t window) {
 
     terminate_swapchain(renderer);
     destroy_framebuffers(renderer);
+    destroy_depth_resources(renderer);
     setup_swapchain(renderer, window);
+    setup_depth_resources(renderer);
     setup_framebuffers(renderer);
 }
 
 
 
 void setup_render_pass(renderer_t *renderer) {
-    create_render_pass_simple(&renderer->render_pass, renderer->logical_device, renderer->swapchain_image_format);
+    create_render_pass_depth_buffered(&renderer->render_pass, renderer->logical_device, renderer->swapchain_image_format, renderer->depth_image_format);
 }
 
 void destroy_render_pass(renderer_t *renderer) {
     vkDestroyRenderPass(renderer->logical_device, renderer->render_pass, NULL);
+}
+
+
+void setup_depth_resources(renderer_t *renderer) {
+    renderer->depth_images = malloc(renderer->swapchain_image_count*sizeof(image_t));
+    renderer->depth_image_views = malloc(renderer->swapchain_image_count*sizeof(VkImageView));
+    renderer->depth_image_format = VK_FORMAT_D32_SFLOAT_S8_UINT ;
+
+    for(uint32_t i = 0; i < renderer->swapchain_image_count; i++) {
+        renderer->depth_images[i] = create_image(renderer, renderer->extent.width, renderer->extent.width, 1, VK_SAMPLE_COUNT_1_BIT, renderer->depth_image_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        renderer->depth_image_views[i] = create_image_view(renderer->depth_images[i].image, renderer->logical_device, 1, renderer->depth_image_format, VK_IMAGE_ASPECT_DEPTH_BIT);
+    }
+}
+
+void destroy_depth_resources(renderer_t *renderer) {
+    for(uint32_t i = 0; i < renderer->swapchain_image_count; i++) {
+        vkDestroyImageView(renderer->logical_device, renderer->depth_image_views[i], NULL);
+        destroy_image(&renderer->depth_images[i], renderer->logical_device);
+    }
 }
 
 
@@ -137,7 +160,9 @@ void setup_framebuffers(renderer_t *renderer) {
     renderer->framebuffers = malloc(renderer->swapchain_image_count*sizeof(VkFramebuffer));
 
     for(uint32_t i = 0; i < renderer->swapchain_image_count; i++) {
-        create_framebuffer(&renderer->framebuffers[i], renderer->logical_device, renderer->render_pass, 1, &renderer->swapchain_image_views[i], renderer->extent);
+        uint32_t attachment_count = 2;
+        VkImageView attachments[2] = {renderer->swapchain_image_views[i], renderer->depth_image_views[i]};
+        create_framebuffer(&renderer->framebuffers[i], renderer->logical_device, renderer->render_pass, 2, attachments, renderer->extent);
     }
 }
 

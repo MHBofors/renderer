@@ -190,7 +190,7 @@ matrix_t matrix_product(matrix_t A, matrix_t B) {
 }
 */
 
-transformation_t composition(transformation_t A, transformation_t B) {
+transformation_t transform(transformation_t A, transformation_t B) {
     transformation_t r;
     matrix_product(&A, &B, &r);
     return r;

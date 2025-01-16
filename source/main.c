@@ -199,7 +199,7 @@ mesh_t create_donut_mesh(double R, double r, uint32_t m, uint32_t n) {
     double phi = 2*M_PI/(double)m;
     double theta = 2*M_PI/(double)n;
 
-    uint32_t M = 8, N = 6;
+    uint32_t M = 8, N = 4, K = 4;
     for(int32_t i = 0; i < m+1; i++) {
         for(int32_t j = 0; j < n+1; j++) {
             vertex_t vertex = {
@@ -215,8 +215,8 @@ mesh_t create_donut_mesh(double R, double r, uint32_t m, uint32_t n) {
                     .alpha = 0.f
                 },
                 .texture_coordinates = {
-                    .u = M*i/(double)m,
-                    .v = (M>>2)*i/(double)m+N*j/(double)n
+                    .v = M*i/(double)m,
+                    .u = K*i/(double)m+N*j/(double)n
                 }
             };
 
@@ -302,8 +302,8 @@ fractal_data_t initialise_fractal_data(renderer_t *renderer) {
 
     uint32_t texture_width = 2048, texture_height = 2048;
     for(uint32_t i = 0; i < frames_in_flight; i++) {
-        fractal_images[i] = create_image(renderer, texture_width, texture_height, 1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD);
-        fractal_image_views[i] = create_image_view(fractal_images[i].image, renderer->logical_device, 1, VK_FORMAT_R32G32B32A32_SFLOAT);
+        fractal_images[i] = create_image(renderer, texture_width, texture_height, 1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        fractal_image_views[i] = create_image_view(fractal_images[i].image, renderer->logical_device, 1, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
         
         begin_barriers[i] = (VkImageMemoryBarrier){
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -474,7 +474,7 @@ void run_fractal(engine_t *engine) {
     uint16_t indices[6];
     
     fractal_data_t fractal_data = initialise_fractal_data(renderer);
-    mesh_t model = create_donut_mesh(1.0625, 1.0, 128, 128);
+    mesh_t model = create_donut_mesh(1.25, 1.0, 128, 128);
     //mesh_t model = create_square_mesh();
 
     VkCommandBuffer init_command_buffer[2];
@@ -488,9 +488,9 @@ void run_fractal(engine_t *engine) {
 
     host_buffer_t scene_buffer[renderer->frame_count];
 
-    vector3_t eye = {0.5f, 0.5f, 0.5f};
-    vector3_t object = {0.f, 0.f, 0.f};
-    vector3_t up = {0.f, 0.25f, 1.f};
+    vector3_t eye = {0.75f, 0.0f, 0.0f};
+    vector3_t object = {-0.5f, 1.f, 0.0f};
+    vector3_t up = {0.f, 0.f, 1.f};
 
     float aspect_ratio = (float)renderer->extent.width/(float)renderer->extent.height;
     scene_data_t scene_data = {
@@ -535,10 +535,23 @@ void run_fractal(engine_t *engine) {
         .material_instance = &fractal_material
     };
 
-    double t = 0, d_t;
-    clock_t time_start = clock();
 
+
+
+
+
+
+    double t = 3, d_t;
+    clock_t time_start = clock();
     frame_t *current_frame;
+
+    VkClearValue clear_color = {
+        .color = {0.0f, 0.0f, 0.0f}
+    };
+    VkClearValue clear_depth = {
+        .depthStencil = {1.0f, 0.0f}
+    };
+    VkClearValue clear_values[2] = {clear_color, clear_depth};
     while(!window_should_close(engine->window)) {
         window_update();
 
@@ -547,19 +560,19 @@ void run_fractal(engine_t *engine) {
 
         d_t = (double)(clock() - time_start)/CLOCKS_PER_SEC - t;
         t += d_t;
-        float s = 0.025f*t;
-        double theta = 2.5 + 0.05*s;
+        float s = 0.0625f*t;
+        double theta = .5*s;
 
         aspect_ratio = (float)renderer->extent.width/(float)renderer->extent.height;
         scene_data = (scene_data_t){
-            .view = camera_matrix(eye, object, up),
-            .projection = perspective_matrix(M_PI*(0.75 + 0.125*cos(t)), aspect_ratio, 0.01f, 100.0f),
+            .view = camera_matrix(eye, object, (vector3_t){0, sin(s), cos(s)}),
+            .projection = perspective_matrix(M_PI*(0.8), aspect_ratio, 0.01f, 10.0f),
         };
         memcpy(scene_buffer[frame_index].mapped_memory, &scene_data, sizeof(scene_data_t));
 
 
-        complex float z = 0.5*((cos(theta) - cos(2.00*theta)*0.5) + (sin(theta) - sin(2.00*theta)*0.5)*I);
-        z *= 1.15f;
+        complex float z = 0.5*((cos(theta) - cos(4.00*theta)*0.5) + (sin(theta) - sin(4.00*theta)*0.5)*I);
+        z *= 1.55f;
         compute_push_constants_t push = {
             .x_min = -1.f,
             .x_max =  1.f,
@@ -574,7 +587,7 @@ void run_fractal(engine_t *engine) {
         update_fractal(&fractal_data, current_frame->command_buffer, push, frame_index);
 
         vector3_t axis = {cos(2.0*s)-sin(2.0*s), sin(2.0*s)-cos(2.0*s), cos(2.0*s)};
-        VkClearValue clear_color = {{{0.0625f*(cos(s)-sin(s)), 0.25*0.0625f*(sin(s)-cos(s)), 0.0625f*(cos(s))}}};
+        
         VkRenderPassBeginInfo render_pass_info = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             .renderPass = renderer->render_pass,
@@ -583,8 +596,8 @@ void run_fractal(engine_t *engine) {
                 .offset = {0, 0},
                 .extent = renderer->extent
             },
-            .clearValueCount = 1,
-            .pClearValues = &clear_color,
+            .clearValueCount = 2,
+            .pClearValues = &clear_values,
             .pNext = NULL
         };
 
@@ -605,7 +618,7 @@ void run_fractal(engine_t *engine) {
         vkCmdSetViewport(current_frame->command_buffer, 0, 1, &viewport);
         vkCmdSetScissor(current_frame->command_buffer, 0, 1, &scissor);
 
-        mesh.push_constant.model = rotation_matrix(axis, 5.0*s);
+        mesh.push_constant.model = transform(rotation_matrix((vector3_t){0.0, 0.0, 1.0}, 0.5*s), rotation_matrix((vector3_t){0.0, 1.0, 0.0}, M_PI*0.2));
         mesh.push_constant.t = s;
         //mesh.push_constant.model = identity_matrix();
 

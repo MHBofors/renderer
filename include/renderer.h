@@ -58,6 +58,9 @@ typedef struct renderer_t {
     VkFramebuffer *framebuffers;
 
     VkRenderPass render_pass;
+    VkFormat depth_image_format;
+    image_t *depth_images;
+    VkImageView *depth_image_views;
 
     VkCommandPool command_pool;
     VkDescriptorPool global_pool;
@@ -88,6 +91,9 @@ void destroy_render_pass(renderer_t *renderer);
 
 void setup_framebuffers(renderer_t *renderer);
 void destroy_framebuffers(renderer_t *renderer);
+
+void setup_depth_resources(renderer_t *renderer);
+void destroy_depth_resources(renderer_t *renderer);
 
 void setup_frame_resources(renderer_t *renderer, uint32_t frame_count);
 void destroy_frame_resources(renderer_t *renderer);

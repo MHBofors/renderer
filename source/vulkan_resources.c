@@ -20,16 +20,16 @@ uint32_t select_memory_type(VkPhysicalDevice physical_device, uint32_t type_filt
     return ~0;
 }
 
-VkImageView create_image_view(VkImage image, VkDevice logical_device, uint32_t mip_levels, VkFormat image_format) {
+VkImageView create_image_view(VkImage image, VkDevice logical_device, uint32_t mip_levels, VkFormat image_format, VkImageAspectFlags aspect_flags) {
     VkImageView image_view;
     VkImageSubresourceRange subresource_range = {
-        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .aspectMask = aspect_flags,
         .baseMipLevel = 0,
         .levelCount = mip_levels,
         .baseArrayLayer = 0,
         .layerCount = 1
     };
-    
+
     VkImageViewCreateInfo create_info = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         .image = image,
