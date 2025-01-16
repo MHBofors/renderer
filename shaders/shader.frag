@@ -2,6 +2,12 @@
 
 layout(location = 0) in vec4 frag_color;
 layout(location = 1) in vec2 uv;
+
+layout( push_constant ) uniform object_block {
+    mat4 model;
+    float t;
+} push;
+
 layout(set = 1, binding = 0) uniform texture2D texture_image;
 layout(set = 1, binding = 1) uniform sampler texture_sampler;
 
@@ -29,5 +35,5 @@ vec2 kaleido(vec2 uv)
 
 void main() {
     //kaleido(10*(uv - 0.5))
-    out_color = vec4(texture(sampler2D(texture_image, texture_sampler), uv));
+    out_color = vec4(texture(sampler2D(texture_image, texture_sampler), uv+10.0*push.t*vec2(-1,1)));
 }

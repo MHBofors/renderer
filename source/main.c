@@ -16,8 +16,6 @@
 #include "graphics_matrices.h"
 #include <unistd.h>
 
-
-
 extern const uint32_t frames_in_flight;
 extern const uint32_t enable_validation_layers;
 extern const uint32_t HEIGHT;
@@ -190,8 +188,10 @@ mesh_t create_cube_mesh() {
     return mesh;
 }
 
+
+
 mesh_t create_donut_mesh(double R, double r, uint32_t m, uint32_t n) {
-    uint32_t vertex_count = m*n;
+    uint32_t vertex_count = (m+1)*(n+1);
     uint32_t index_count = 6*m*n;
     vertex_t (*vertices) = malloc(vertex_count*sizeof(vertex_t));
     uint16_t (*indices) = malloc(index_count*sizeof(uint16_t));
@@ -199,13 +199,14 @@ mesh_t create_donut_mesh(double R, double r, uint32_t m, uint32_t n) {
     double phi = 2*M_PI/(double)m;
     double theta = 2*M_PI/(double)n;
 
-    for(uint32_t i = 0; i < m; i++) {
-        for(uint32_t j = 0; j < n; j++) {
+    uint32_t M = 8, N = 6;
+    for(int32_t i = 0; i < m+1; i++) {
+        for(int32_t j = 0; j < n+1; j++) {
             vertex_t vertex = {
                 .position = {
-                    .x = (R + r*cos(M_PI + theta*j))*cos(M_PI + phi*i),
-                    .y = (R + r*cos(M_PI + theta*j))*sin(M_PI + phi*i),
-                    .z = r*sin(M_PI + theta*j)
+                    .x = (R + r*cos(theta*j))*cos(phi*i),
+                    .y = (R + r*cos(theta*j))*sin(phi*i),
+                    .z = r*sin(theta*j)
                 },
                 .color = {
                     .r = 1.f,
@@ -214,19 +215,23 @@ mesh_t create_donut_mesh(double R, double r, uint32_t m, uint32_t n) {
                     .alpha = 0.f
                 },
                 .texture_coordinates = {
-                    .u = 11.*i/(double)m,
-                    .v = 7.*j/(double)n
+                    .u = M*i/(double)m,
+                    .v = (M>>2)*i/(double)m+N*j/(double)n
                 }
             };
 
-            vertices[i*n + j] = vertex;
-            indices[i*6*n + j*6 + 0] = i*n + j;
-            indices[i*6*n + j*6 + 1] = ((i + 1) % m)*n + j;
-            indices[i*6*n + j*6 + 2] = i*n + ((j + 1) % n);
-            indices[i*6*n + j*6 + 3] = ((i + 1) % m)*n + ((j + 1) % n);
-            indices[i*6*n + j*6 + 4] = i*n + ((j + 1) % n);
-            indices[i*6*n + j*6 + 5] = ((i + 1) % m)*n + j;
+            vertices[i*(n+1) + j] = vertex;
+        }
+    }
 
+    for(int32_t i = 0; i < m; i++) {
+        for(int32_t j = 0; j < n; j++) {
+            indices[i*6*n + j*6 + 0] = i*(n+1) + j;
+            indices[i*6*n + j*6 + 1] = (i + 1)*(n+1) + j;
+            indices[i*6*n + j*6 + 2] = i*(n+1) + (j + 1);
+            indices[i*6*n + j*6 + 3] = (i + 1)*(n+1) + (j + 1);
+            indices[i*6*n + j*6 + 4] = i*(n+1) + (j + 1);
+            indices[i*6*n + j*6 + 5] = (i + 1)*(n+1) + j;
         }
     }
 
@@ -469,7 +474,7 @@ void run_fractal(engine_t *engine) {
     uint16_t indices[6];
     
     fractal_data_t fractal_data = initialise_fractal_data(renderer);
-    mesh_t model = create_donut_mesh(1.025, 1.0, 500, 100);
+    mesh_t model = create_donut_mesh(1.0625, 1.0, 128, 128);
     //mesh_t model = create_square_mesh();
 
     VkCommandBuffer init_command_buffer[2];
@@ -485,9 +490,9 @@ void run_fractal(engine_t *engine) {
 
     vector3_t eye = {0.5f, 0.5f, 0.5f};
     vector3_t object = {0.f, 0.f, 0.f};
-    vector3_t up = {0.f, 0.f, 1.f};
+    vector3_t up = {0.f, 0.25f, 1.f};
 
-    float aspect_ratio = (float)renderer->extent.height/(float)renderer->extent.width;
+    float aspect_ratio = (float)renderer->extent.width/(float)renderer->extent.height;
     scene_data_t scene_data = {
         .view = camera_matrix(eye, object, up),
         .projection = perspective_matrix(M_PI_2, aspect_ratio, 0.01f, 100.0f),
@@ -524,7 +529,8 @@ void run_fractal(engine_t *engine) {
         .index_buffer = index_buffer.buffer,
         .vertex_buffer = &vertex_buffer.buffer,
         .push_constant = {
-            .model = identity_matrix()
+            .model = identity_matrix(),
+            .t = 0
         },
         .material_instance = &fractal_material
     };
@@ -543,6 +549,15 @@ void run_fractal(engine_t *engine) {
         t += d_t;
         float s = 0.025f*t;
         double theta = 2.5 + 0.05*s;
+
+        aspect_ratio = (float)renderer->extent.width/(float)renderer->extent.height;
+        scene_data = (scene_data_t){
+            .view = camera_matrix(eye, object, up),
+            .projection = perspective_matrix(M_PI*(0.75 + 0.125*cos(t)), aspect_ratio, 0.01f, 100.0f),
+        };
+        memcpy(scene_buffer[frame_index].mapped_memory, &scene_data, sizeof(scene_data_t));
+
+
         complex float z = 0.5*((cos(theta) - cos(2.00*theta)*0.5) + (sin(theta) - sin(2.00*theta)*0.5)*I);
         z *= 1.15f;
         compute_push_constants_t push = {
@@ -591,7 +606,9 @@ void run_fractal(engine_t *engine) {
         vkCmdSetScissor(current_frame->command_buffer, 0, 1, &scissor);
 
         mesh.push_constant.model = rotation_matrix(axis, 5.0*s);
+        mesh.push_constant.t = s;
         //mesh.push_constant.model = identity_matrix();
+
         draw_mesh(current_frame, &mesh, global_sets[frame_index]);
 
         vkCmdEndRenderPass(current_frame->command_buffer);

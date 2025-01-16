@@ -21,6 +21,7 @@ typedef struct material_t {
 
 typedef struct push_data_t {
     transformation_t model;
+    float t;
 } push_data_t;
 
 typedef struct scene_data_t {

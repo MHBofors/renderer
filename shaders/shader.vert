@@ -9,6 +9,7 @@ layout(location = 1) out vec2 out_uv;
 
 layout( push_constant ) uniform object_block {
     mat4 model;
+    float t;
 } push;
 
 layout(set = 0, binding = 0) uniform scene {

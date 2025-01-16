@@ -1,6 +1,6 @@
 #version 460
 #define MAX_ITER 512
-#define PALLETE_SIZE 3
+#define PALLETE_SIZE 6
 #define PI (3.1415926535897932384626433832795)
 #define PHI 1.618033988
 #define R_SQUARED 1e15
@@ -29,8 +29,11 @@ vec2 c = vec2(re, im);
 
 vec3 palette[PALLETE_SIZE + 1] = {
     vec3(.95, .075, .075),
-    vec3(.075, .75, .075),
+    vec3(.85, .25, .075),
+    vec3(.175, .25, .175),
+    vec3(.075, .075, .65),
     vec3(.075, .075, .75),
+    vec3(.45, .075, .55),
     vec3(.95, .075, .075),
 };
 
