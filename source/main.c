@@ -539,9 +539,7 @@ void run_fractal(engine_t *engine) {
 
 
 
-
-
-    double t = 3, d_t;
+    double t = 0, d_t;
     clock_t time_start = clock();
     frame_t *current_frame;
 
@@ -560,26 +558,26 @@ void run_fractal(engine_t *engine) {
 
         d_t = (double)(clock() - time_start)/CLOCKS_PER_SEC - t;
         t += d_t;
-        float s = 0.0625f*t;
-        double theta = .5*s;
+        float s = 0.125f*t;
+        double theta = .125*s;
 
         aspect_ratio = (float)renderer->extent.width/(float)renderer->extent.height;
         scene_data = (scene_data_t){
             .view = camera_matrix(eye, object, (vector3_t){0, sin(s), cos(s)}),
-            .projection = perspective_matrix(M_PI*(0.8), aspect_ratio, 0.01f, 10.0f),
+            .projection = perspective_matrix(M_PI*(0.5), aspect_ratio, 0.01f, 10.0f),
         };
         memcpy(scene_buffer[frame_index].mapped_memory, &scene_data, sizeof(scene_data_t));
 
 
         complex float z = 0.5*((cos(theta) - cos(4.00*theta)*0.5) + (sin(theta) - sin(4.00*theta)*0.5)*I);
-        z *= 1.55f;
+        z *= 1.35f;
         compute_push_constants_t push = {
             .x_min = -1.f,
             .x_max =  1.f,
             .y_min = -1.f,
             .y_max =  1.f,
             .z = z,
-            .t = 4*s,
+            .t = s,
             .padding = 0
         };
 

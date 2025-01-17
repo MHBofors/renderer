@@ -35,5 +35,5 @@ vec2 kaleido(vec2 uv)
 
 void main() {
     //kaleido(10*(uv - 0.5))
-    out_color = vec4(texture(sampler2D(texture_image, texture_sampler), uv+push.t*vec2(-1,1)));
+    out_color = vec4(texture(sampler2D(texture_image, texture_sampler), uv + 0.0625*push.t*vec2(-1,1)));
 }

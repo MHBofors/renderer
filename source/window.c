@@ -61,10 +61,12 @@ void initialise_window(window_t *window) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_REFRESH_RATE, 144);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     GLFWmonitor *monitor = glfwGetPrimaryMonitor();
     *window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", monitor, NULL);
-    //glfwSetWindowMonitor(window, monitor, 0, 0, 1920, 1080, 144);
+    //*window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", NULL, NULL);
+    glfwSetWindowMonitor(window, monitor, 0, 0, 1920, 1080, 144);
 
     if(window == NULL) {
         error(1, "Failed to create window");
