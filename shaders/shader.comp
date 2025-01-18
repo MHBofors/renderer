@@ -264,11 +264,12 @@ vec3 color_alt(float v) {
 }
 
 vec3 color_arg(vec2 z, float d) {
-    float a = 1.0;
-    float b = 0.25;
-    float c = 0.95;
-    (1.0 - a) + a*exp(-d);
-    return vec3(8*atan(z.x, z.y)/PI-log(d)/10, (c + (a - c)*(exp(-d))), (c + (b - c)*(u(32*d))));
+    float s_0 = 1.0;
+    float s_1 = 0.95;
+    float v_0 = 0.25;
+    float v_1 = 0.65;
+    //(1.0 - a) + a*exp(-d);
+    return vec3(8*atan(z.x, z.y)/PI-log(d)/10, (s_1 + (s_0 - s_1)*(exp(-d))), pow(v_0 + (v_1 - v_0)*(u(8*d)), unit_wave(2*t)));
 }
 
 vec3 color_mag(vec2 z, float d) {
