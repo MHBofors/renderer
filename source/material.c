@@ -2,7 +2,7 @@
 
 material_pipeline_t build_textured_mesh_pipeline(VkDevice logical_device, VkRenderPass render_pass, VkDescriptorSetLayout *scene_layout, VkDescriptorSetLayout *material_layout, VkExtent2D extent) {
     material_pipeline_t material_pipeline;
-    VkDescriptorSetLayout layouts[] = {*scene_layout, *material_layout};
+    VkDescriptorSetLayout layouts[2] = {*scene_layout, *material_layout};
 
     VkPushConstantRange push_constant_range = {
         .offset = 0,
@@ -24,8 +24,8 @@ material_pipeline_t build_textured_mesh_pipeline(VkDevice logical_device, VkRend
 
     VkShaderModule vertex_shader;
     VkShaderModule fragment_shader;
-    load_shader_module(&vertex_shader, logical_device, "shaders/vert.spv");
-    load_shader_module(&fragment_shader, logical_device, "shaders/frag.spv");
+    load_shader_module(&vertex_shader, logical_device, "bin/shaders/shader_vertex.spv");
+    load_shader_module(&fragment_shader, logical_device, "bin/shaders/shader_fragment.spv");
 
     uint32_t stage_count = 2;
     VkPipelineShaderStageCreateInfo vert_shader_stage_info = {

@@ -22,18 +22,6 @@ float Y = gl_FragCoord.y/800 - 1.0;
 */
 
 float pi = 3.14159;
-vec2 kaleido(vec2 uv)
-{
-	float th = atan(uv.y, uv.x);
-	float r = pow(length(uv), 1.);
-
-    float p1 = sin(2. * pi / 10.);
-    float q = 2. * pi / ( 5. + 4. * p1);
-    th = abs(mod(th, q) - 0.5 * q);
-	return vec2(cos(th), sin(th)) * pow(r, 1.3 + 1.3 / (1.3 + sin(2. * pi / 3.))) * .1;
-}
-
 void main() {
-    //kaleido(10*(uv - 0.5))
-    out_color = vec4(texture(sampler2D(texture_image, texture_sampler), uv + 0.0625*push.t*vec2(-1,1)));
+    out_color = vec4(texture(sampler2D(texture_image, texture_sampler), uv));
 }

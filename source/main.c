@@ -363,7 +363,7 @@ fractal_data_t initialise_fractal_data(renderer_t *renderer) {
     VkPipelineLayout pipeline_layout;
     
     create_compute_pipeline_layout(&pipeline_layout, renderer->logical_device, fractal_layout);
-    create_compute_pipeline(&pipeline, pipeline_layout, renderer->logical_device, "shaders/compute.spv");
+    create_compute_pipeline(&pipeline, pipeline_layout, renderer->logical_device, "bin/shaders/shader_compute.spv");
 
     fractal_data_t fractal_data = {
         .pipeline = pipeline,
@@ -382,12 +382,14 @@ fractal_data_t initialise_fractal_data(renderer_t *renderer) {
 }
 
 void update_fractal(fractal_data_t *fractal_data, VkCommandBuffer command_buffer, compute_push_constants_t push, uint32_t frame_index) {
+    uint32_t thread_count = 8;
+    
     vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &fractal_data->begin_barriers[frame_index]);
     
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, fractal_data->pipeline);
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, fractal_data->layout, 0, 1, &fractal_data->descriptors[frame_index], 0, NULL);
     vkCmdPushConstants(command_buffer, fractal_data->layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(compute_push_constants_t), &push);
-    vkCmdDispatch(command_buffer, fractal_data->texture_width/32 + (fractal_data->texture_width % 32 != 0), fractal_data->texture_height/32 + (fractal_data->texture_height % 32 != 0), 1);
+    vkCmdDispatch(command_buffer, fractal_data->texture_width/thread_count + (fractal_data->texture_width % thread_count != 0), fractal_data->texture_height/thread_count + (fractal_data->texture_height % thread_count != 0), 1);
     
     vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &fractal_data->end_barriers[frame_index]);
 }
@@ -468,12 +470,12 @@ void run_fractal(engine_t *engine) {
         allocate_descriptor_set(&global_sets[i], renderer->logical_device, descriptor_pool, &scene_layout, 1);
         allocate_descriptor_set(&material_sets[i], renderer->logical_device, descriptor_pool, &material_layout, 1);
     }
-    
 
     vertex_t vertices[4];
     uint16_t indices[6];
-    
+
     fractal_data_t fractal_data = initialise_fractal_data(renderer);
+
     mesh_t model = create_donut_mesh(1.25, 1.0, 128, 128);
     //mesh_t model = create_square_mesh();
 
@@ -482,7 +484,7 @@ void run_fractal(engine_t *engine) {
 
     buffer_t vertex_buffer = create_vertex_buffer(renderer, model.vertex_count, sizeof(vertex_t), model.vertices, renderer->queues.graphics_queue, init_command_buffer[0]);
     buffer_t index_buffer = create_index_buffer(renderer, model.index_count, model.indices, renderer->queues.graphics_queue, init_command_buffer[1]);
-    
+
     free(model.indices);
     free(model.vertices);
 
@@ -537,8 +539,6 @@ void run_fractal(engine_t *engine) {
 
 
 
-
-
     double t = 0, d_t;
     clock_t time_start = clock();
     frame_t *current_frame;
@@ -558,7 +558,7 @@ void run_fractal(engine_t *engine) {
 
         d_t = (double)(clock() - time_start)/CLOCKS_PER_SEC - t;
         t += d_t;
-        float s = 0.125f*t;
+        double s = 0.125*t;
         double theta = .125*s;
 
         aspect_ratio = (float)renderer->extent.width/(float)renderer->extent.height;
@@ -570,7 +570,7 @@ void run_fractal(engine_t *engine) {
 
 
         complex float z = 0.5*((cos(theta) - cos(4.00*theta)*0.5) + (sin(theta) - sin(4.00*theta)*0.5)*I);
-        z *= 1.35f;
+        z *= 1.25f;
         compute_push_constants_t push = {
             .x_min = -1.f,
             .x_max =  1.f,
