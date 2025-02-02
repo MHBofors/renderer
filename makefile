@@ -7,14 +7,23 @@ BUILD_DIR = build
 BIN_DIR = bin
 SHADER_SOURCE_DIR = shaders
 SHADER_BIN_DIR = $(BIN_DIR)/shaders
+BUILD = DEBUG
 
-CFLAGS = -std=c17 -g -Wall -O2 -I./$(INCLUDE_DIR) -lm
-
-ifeq ($(OS), MACOS) 
-	LDFLAGS = -lglfw -lvulkan -ldl -lpthread -lX11 -lm -lSDL2 -rpath /usr/local/lib
-else
-	LDFLAGS = -lm -lglfw3 -lvulkan-1 -lpthread
+PLATFORM = $(shell uname)
+ifeq ($(PLATFORM), MINGW64_NT-10.0-22631)
+	PLATFORM += Windows
 endif
+
+CFLAGS_COMMON = -std=c17 -I./$(INCLUDE_DIR)
+CFLAGS_RELEASE = -O3 -D NDEBUG
+CFLAGS_DEBUG = -O0 -g -Wall
+
+LDFLAGS_Darwin = -lglfw -lvulkan -ldl -lpthread -lX11 -lm -lSDL2 -rpath /usr/local/lib
+LDFLAGS_Linux = -lglfw -lvulkan -ldl -lpthread -lX11 -lm -lSDL2
+LDFLAGS_Windows = -lm -lglfw3 -lvulkan-1 -lpthread
+
+CFLAGS = $(CFLAGS_COMMON) $(CFLAGS_$(BUILD))
+LDFLAGS  = $(LDFLAGS_$(PLATFORM))
 
 # Source files
 SOURCE_FILES = $(wildcard $(SRC_DIR)/*.c)
@@ -23,12 +32,17 @@ SHADER_SOURCE_FILES = $(wildcard $(SHADER_SOURCE_DIR)/*)
 SHADER_FILES = $(patsubst $(SHADER_SOURCE_DIR)/%.frag, $(SHADER_BIN_DIR)/%_fragment.spv, $(SHADER_SOURCE_FILES)) $(patsubst $(SHADER_SOURCE_DIR)/%.vert, $(SHADER_BIN_DIR)/%_vertex.spv, $(SHADER_SOURCE_FILES)) $(patsubst $(SHADER_SOURCE_DIR)/%.comp, $(SHADER_BIN_DIR)/%_compute.spv, $(SHADER_SOURCE_FILES))
 
 # Executable name
-EXECUTABLE = $(BIN_DIR)/vulkan_app.exe
+ifeq ($(PLATFORM), Windows)
+	EXECUTABLE = $(BIN_DIR)/vulkan_app.exe
+else
+	EXECUTABLE = $(BIN_DIR)/vulkan_app
+endif
 
 # Targets
 all: $(BUILD_DIR) $(BIN_DIR) $(SHADER_BIN_DIR) $(SHADER_FILES) $(EXECUTABLE)
 
 $(BUILD_DIR):
+	$(OS)
 	mkdir -p $(BUILD_DIR)
 
 $(BIN_DIR):
