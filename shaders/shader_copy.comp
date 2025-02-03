@@ -1,5 +1,5 @@
 #version 460
-#define MAX_ITER 256
+#define MAX_ITER 1024
 #define PALLETE_SIZE 3
 #define PI (3.1415926535897932384626433832795)
 #define PHI 1.618033988
@@ -27,7 +27,6 @@ layout(push_constant) uniform constants {
 };
 
 vec2 c = vec2(re, im);
-float s = 0.125*t;
 
 vec3 palette[PALLETE_SIZE + 1] = {
     vec3(.83, 0.75, 1),
@@ -277,24 +276,24 @@ vec3 color_alt(float v) {
 }
 
 vec3 color_arg(vec2 z, float d) {
-    float s_0 = 0.95;
+    float s_0 = 0.25;
     float s_1 = 0.95;
-    float v_0 = 0.95;
+    float v_0 = 0.25;
     float v_1 = 0.95;
-    float h = 2*atan(z.x, z.y)/PI-log(d)/8 - s;
-    float s = s_0 + (s_1 - s_0)*(unit_wave(4*s));
-    float v = v_0 + (v_1 - v_0)*(unit_wave(4*s));
+    float h = 2*atan(z.x, z.y)/PI-log(d)/8 - t;
+    float s = s_0 + (s_1 - s_0)*(unit_wave(4*t));
+    float v = v_0 + (v_1 - v_0)*(unit_wave(4*t));
     return vec3(h, s, v);
 }
 
 vec3 color_mag(vec2 z, float d) {
     float s_0 = 0.95;
     float s_1 = 0.95;
-    float v_0 = 0.95;
+    float v_0 = exp(-d);
     float v_1 = 0.95;
-    float h = -length(z)+s-log(d)/8;
-    float s = s_0 + (s_1 - s_0)*(unit_wave(s));
-    float v = v_0 + (v_1 - v_0)*((unit_wave(t)*unit_wave(t)+d));
+    float h = -length(z)+t-log(d)/8;
+    float s = s_0 + (s_1 - s_0)*(unit_wave(t));
+    float v = v_0 + (v_1 - v_0)*(sqrt((1+d)));
     return vec3(h, s, v);
 }
 
@@ -350,7 +349,8 @@ vec3 color_alt2(float v) {
 
     vec3 color = vec3(red, green, blue);
     return color;
-}*/
+}
+*/
 
 vec3 color_gradient_old(vec2 z, float t) {
     return vec3((unit_wave(z.x + t) + unit_wave(z.y + 2*t))/2, (unit_wave(z.x + 3*t + 1) + unit_wave(z.y + t))/2, (unit_wave(z.x + 3*t) + unit_wave(z.y + 2*t + 3))/2);
@@ -396,7 +396,7 @@ void main() {
         z = cmult(w, z);
         vec3 hsv;
         hsv = color_arg(z, d);
-        //hsv = color_mag(z, d);
+        hsv = color_mag(z, d);
         imageStore(image, texel_coordinate, vec4(hsv_to_rgb(hsv.x, hsv.y, hsv.z), 1));
     } else {
         vec4 color_gradient = vec4(color_gradient(z, t), 1.0);

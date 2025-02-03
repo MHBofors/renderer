@@ -6,15 +6,16 @@
 //
 #define _USE_MATH_DEFINES
 
-
 #include <stdio.h>
 #include <math.h>
 #include <complex.h>
 #include <time.h>
+#include <unistd.h>
+
 #include "renderer.h"
 #include "window.h"
 #include "graphics_matrices.h"
-#include <unistd.h>
+
 
 extern const uint32_t frames_in_flight;
 extern const uint32_t enable_validation_layers;
@@ -29,12 +30,9 @@ uint32_t octahedral_rotation(uint32_t m, uint32_t axis) {
 
 typedef struct compute_push_constants_t {
     float x_min, x_max, y_min, y_max;
-    union {
-        complex float z;
-        float C[2];
-    };
+    complex float z;
     float t;
-    uint32_t padding;
+    float a;
 } compute_push_constants_t;
 
 typedef struct fractal_data_t {
@@ -500,8 +498,7 @@ void run_fractal(engine_t *engine) {
         .projection = perspective_matrix(M_PI_2, aspect_ratio, 0.01f, 100.0f),
     };
 
-    //scene_data.view = identity_matrix();
-    //scene_data.projection = identity_matrix();
+
 
     for(uint32_t i = 0; i < renderer->frame_count; i++) {
         scene_buffer[i] = create_host_buffer(renderer, sizeof(scene_data_t), renderer->queues.graphics_queue);
@@ -522,9 +519,9 @@ void run_fractal(engine_t *engine) {
         update_set(&writer, renderer->logical_device, global_sets[i]);
         clear_writes(&writer);
     }
-    
+
     free_writer(&writer);
-    
+
     render_object_t mesh = {
         .first_index = 0,
         .index_count = model.index_count,
@@ -539,7 +536,7 @@ void run_fractal(engine_t *engine) {
 
 
 
-    double t = 0, d_t;
+    double t = 0, s = 0, d_t;
     clock_t time_start = clock();
     frame_t *current_frame;
 
@@ -558,7 +555,7 @@ void run_fractal(engine_t *engine) {
 
         d_t = (double)(clock() - time_start)/CLOCKS_PER_SEC - t;
         t += d_t;
-        double s = 0.125*t;
+        s += 0.125*(1 + 0.125*sin(t))*d_t;
         double theta = .125*s;
 
         aspect_ratio = (float)renderer->extent.width/(float)renderer->extent.height;
@@ -570,22 +567,21 @@ void run_fractal(engine_t *engine) {
 
 
         complex float z = 0.5*((cos(theta) - cos(4.00*theta)*0.5) + (sin(theta) - sin(4.00*theta)*0.5)*I);
-        z *= 1.25f;
+        z *= 1.5f;
         compute_push_constants_t push = {
             .x_min = -1.f,
             .x_max =  1.f,
             .y_min = -1.f,
             .y_max =  1.f,
             .z = z,
-            .t = s,
-            .padding = 0
+            .t = t,
         };
 
         fractal_material.descriptor = material_sets[frame_index];
         update_fractal(&fractal_data, current_frame->command_buffer, push, frame_index);
 
         vector3_t axis = {cos(2.0*s)-sin(2.0*s), sin(2.0*s)-cos(2.0*s), cos(2.0*s)};
-        
+
         VkRenderPassBeginInfo render_pass_info = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             .renderPass = renderer->render_pass,
@@ -635,7 +631,7 @@ void run_fractal(engine_t *engine) {
     for(uint32_t i = 0; i < renderer->frame_count; i++) {
         destroy_host_buffer(&scene_buffer[i], renderer->logical_device);
     }
-   
+
     vkDestroyPipeline(renderer->logical_device, textured_pipeline.pipeline, NULL);
     vkDestroyPipelineLayout(renderer->logical_device, textured_pipeline.layout, NULL);
     vkDestroyDescriptorSetLayout(renderer->logical_device, scene_layout, NULL);

@@ -44,7 +44,8 @@ void get_debug_extensions(dynamic_vector *vulkan_extension_config) {
 VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
 VkDebugUtilsMessageTypeFlagsEXT message_type, const VkDebugUtilsMessengerCallbackDataEXT* p_callback_data,
 void* p_user_data) {
-    printf("\nValidation layer: %s\n", p_callback_data->pMessage);
+    static uint32_t call_number = 0;
+    printf("validation message %2d: %s\n", call_number++, p_callback_data->pMessage);
     return VK_FALSE;
 }
 

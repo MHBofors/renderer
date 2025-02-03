@@ -9,13 +9,14 @@ SHADER_SOURCE_DIR = shaders
 SHADER_BIN_DIR = $(BIN_DIR)/shaders
 BUILD = DEBUG
 
-PLATFORM = $(shell uname)
-ifeq ($(PLATFORM), MINGW64_NT-10.0-22631)
-	PLATFORM += Windows
+ifeq ($(OS), Windows_NT)
+	PLATFORM = Windows
+else
+	PLATFORM = $(shell uname)
 endif
 
-CFLAGS_COMMON = -std=c17 -I./$(INCLUDE_DIR)
-CFLAGS_RELEASE = -O3 -D NDEBUG
+CFLAGS_COMMON = -std=c17 -I./$(INCLUDE_DIR) -I../external
+CFLAGS_RELEASE = -O3 -D NDEBUG -w
 CFLAGS_DEBUG = -O0 -g -Wall
 
 LDFLAGS_Darwin = -lglfw -lvulkan -ldl -lpthread -lX11 -lm -lSDL2 -rpath /usr/local/lib
@@ -42,7 +43,6 @@ endif
 all: $(BUILD_DIR) $(BIN_DIR) $(SHADER_BIN_DIR) $(SHADER_FILES) $(EXECUTABLE)
 
 $(BUILD_DIR):
-	$(OS)
 	mkdir -p $(BUILD_DIR)
 
 $(BIN_DIR):
