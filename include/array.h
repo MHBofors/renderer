@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#define array_INIT_SIZE 8
+#define ARRAY_INIT_SIZE 8
 #define WORD_SIZE 8
 
 typedef struct array array_t;

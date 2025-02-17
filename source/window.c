@@ -8,8 +8,8 @@
 #include "window.h"
 
 
-const uint32_t WIDTH = 800;
-const uint32_t HEIGHT = 800;
+const uint32_t WIDTH = 600;
+const uint32_t HEIGHT = 600;
 
 void create_surface(VkSurfaceKHR *surface, VkInstance instance, window_t window) {
     if (glfwCreateWindowSurface(instance, window, NULL, surface) != VK_SUCCESS) {
@@ -53,7 +53,7 @@ int window_should_close(window_t window) {
     return glfwWindowShouldClose(window);
 }
 
-void initialise_window(window_t *window) {
+void initialise_window_fullscreen(window_t *window) {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
@@ -62,7 +62,29 @@ void initialise_window(window_t *window) {
     glfwWindowHint(GLFW_REFRESH_RATE, 144);
 
     GLFWmonitor *monitor = glfwGetPrimaryMonitor();
-    //*window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", monitor, NULL);
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+    glfwWindowHint(GLFW_RED_BITS, mode->redBits);
+    glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
+    glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
+    glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+    *window = glfwCreateWindow(mode->width, mode->height, "Vulkan", monitor, NULL);
+
+    if(window == NULL) {
+        error(1, "Failed to create window");
+    }
+}
+
+void initialise_window(window_t *window) {
+    glfwInit();
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); 
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_REFRESH_RATE, 144);
+    //glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+
+    GLFWmonitor *monitor = glfwGetPrimaryMonitor();
     *window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", NULL, NULL);
 
     if(window == NULL) {

@@ -19,10 +19,10 @@ struct array {
 array_t *array_alloc(size_t size) {
     array_t *array_new = malloc(sizeof(array_t));
     if(array_new != NULL) {
-        array_new->array_size = array_INIT_SIZE;
+        array_new->array_size = ARRAY_INIT_SIZE;
         array_new->element_count = 0;
         array_new->element_size = size;
-        array_new->data = malloc(array_INIT_SIZE * size);
+        array_new->data = malloc(ARRAY_INIT_SIZE * size);
 
         if(array_new->data != NULL) {
             return array_new;

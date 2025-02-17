@@ -207,10 +207,10 @@ mesh_t create_donut_mesh(double R, double r, uint32_t m, uint32_t n) {
                     .z = r*sin(theta*j)
                 },
                 .color = {
-                    .r = 1.f,
-                    .g = 1.f,
-                    .b = 1.f,
-                    .alpha = 0.f
+                    .r = 0.f,
+                    .g = 0.f,
+                    .b = 0.f,
+                    .alpha = 1.f
                 },
                 .texture_coordinates = {
                     .v = M*i/(double)m,
@@ -488,8 +488,8 @@ void run_fractal(engine_t *engine) {
 
     host_buffer_t scene_buffer[renderer->frame_count];
 
-    vector3_t eye = {0.75f, 0.0f, 0.0f};
-    vector3_t object = {-0.5f, 1.f, 0.0f};
+    vector3_t eye = {1.0f, 0.0f, 0.0f};
+    vector3_t object = {0.0f, 1.f, 0.0f};
     vector3_t up = {0.f, 0.f, 1.f};
 
     float aspect_ratio = (float)renderer->extent.width/(float)renderer->extent.height;
@@ -541,7 +541,7 @@ void run_fractal(engine_t *engine) {
     frame_t *current_frame;
 
     VkClearValue clear_color = {
-        .color = {0.0f, 0.0f, 0.0f}
+        .color = {0.0f, 0.0f, 0.0f, 1.0f}
     };
     VkClearValue clear_depth = {
         .depthStencil = {1.0f, 0.0f}
@@ -555,8 +555,9 @@ void run_fractal(engine_t *engine) {
 
         d_t = (double)(clock() - time_start)/CLOCKS_PER_SEC - t;
         t += d_t;
-        s += 0.125*(1 + 0.125*sin(t))*d_t;
-        double theta = .125*s;
+        s += d_t;
+        s = 0.1250*t;
+        double theta = 1.0*s;
 
         aspect_ratio = (float)renderer->extent.width/(float)renderer->extent.height;
         scene_data = (scene_data_t){
@@ -567,14 +568,15 @@ void run_fractal(engine_t *engine) {
 
 
         complex float z = 0.5*((cos(theta) - cos(4.00*theta)*0.5) + (sin(theta) - sin(4.00*theta)*0.5)*I);
-        z *= 1.5f;
+        z *= 0.125f;
+        z += 0.65*I;
         compute_push_constants_t push = {
             .x_min = -1.f,
             .x_max =  1.f,
             .y_min = -1.f,
             .y_max =  1.f,
             .z = z,
-            .t = t,
+            .t = s,
         };
 
         fractal_material.descriptor = material_sets[frame_index];
@@ -612,7 +614,7 @@ void run_fractal(engine_t *engine) {
         vkCmdSetViewport(current_frame->command_buffer, 0, 1, &viewport);
         vkCmdSetScissor(current_frame->command_buffer, 0, 1, &scissor);
 
-        mesh.push_constant.model = transform(rotation_matrix((vector3_t){0.0, 0.0, 1.0}, 0.5*s), rotation_matrix((vector3_t){0.0, 1.0, 0.0}, M_PI*0.2));
+        mesh.push_constant.model = transform(rotation_matrix((vector3_t){0.0, 0.0, 1.0}, 0.5*s), rotation_matrix((vector3_t){0.0, 1.0, 0.0}, M_PI*0.125));
         mesh.push_constant.t = s;
         //mesh.push_constant.model = identity_matrix();
 
