@@ -197,7 +197,7 @@ mesh_t create_donut_mesh(double R, double r, uint32_t m, uint32_t n) {
     double phi = 2*M_PI/(double)m;
     double theta = 2*M_PI/(double)n;
 
-    uint32_t M = 8, N = 4, K = 4;
+    uint32_t M = 4, N = 4, K = 4;
     for(int32_t i = 0; i < m+1; i++) {
         for(int32_t j = 0; j < n+1; j++) {
             vertex_t vertex = {
@@ -249,28 +249,28 @@ mesh_t create_square_mesh() {
     vertex_t (*vertices) = malloc(vertex_count*sizeof(vertex_t));
     uint16_t (*indices) = malloc(index_count*sizeof(uint16_t));
 
+    vertices[0].position.x = -1.0;
+    vertices[0].position.y = -1.0;
+    vertices[0].position.z = 0.0;
+    vertices[1].position.x = -1.0;
+    vertices[1].position.y = 1.0;
+    vertices[1].position.z = 0.0;
+    vertices[2].position.x = 1.0;
+    vertices[2].position.y = 1.0;
+    vertices[2].position.z = 0.0;
+    vertices[3].position.x = 1.0;
+    vertices[3].position.y = -1.0;
+    vertices[3].position.z = 0.0;
+
     for(uint32_t i = 0; i < vertex_count; i++) {
-        vertex_t vertex = {
-            .position = {
-                .x = (float)(1 & i)*2.f-1.f,
-                .y = (float)(1 & i>>1)*2.f-1.f,
-                .z = 0
-            },
-            .color = {
-                .r = 1.f,
-                .g = 1.f,
-                .b = 1.f,
-                .alpha = 0.f
-            },
-            .texture_coordinates = {
-                .u = (float)(1 & i)*1.f,
-                .v = (float)(1 & i>>1)*1.f
-            }
-        };
+        vertices[i].texture_coordinates.u =  0.5*(1 + vertices[i].position.x);
+        vertices[i].texture_coordinates.v =  0.5*(1 + vertices[i].position.y);
 
-        vertices[i] = vertex;
+        vertices[i].color.r = 0.f;
+        vertices[i].color.g = 0.f;
+        vertices[i].color.b = 0.f;
+        vertices[i].color.alpha = 1;
     }
-
 
     mesh_t mesh = {
         .index_count = index_count,
@@ -282,9 +282,9 @@ mesh_t create_square_mesh() {
     indices[0] = 0;
     indices[1] = 2;
     indices[2] = 1;
-    indices[3] = 1;
-    indices[4] = 2;
-    indices[5] = 3;
+    indices[3] = 0;
+    indices[4] = 3;
+    indices[5] = 2;
 
     return mesh;
 }
@@ -474,8 +474,8 @@ void run_fractal(engine_t *engine) {
 
     fractal_data_t fractal_data = initialise_fractal_data(renderer);
 
-    mesh_t model = create_donut_mesh(1.25, 1.0, 128, 128);
-    //mesh_t model = create_square_mesh();
+    //mesh_t model = create_donut_mesh(1.25, 1.0, 128, 128);
+    mesh_t model = create_square_mesh();
 
     VkCommandBuffer init_command_buffer[2];
     create_primary_command_buffer(init_command_buffer, renderer->logical_device, renderer->command_pool, 2);
@@ -488,17 +488,17 @@ void run_fractal(engine_t *engine) {
 
     host_buffer_t scene_buffer[renderer->frame_count];
 
-    vector3_t eye = {1.0f, 0.0f, 0.0f};
-    vector3_t object = {0.0f, 1.f, 0.0f};
-    vector3_t up = {0.f, 0.f, 1.f};
+    vector3_t eye = {0.0f, 0.0f, 1.0f};
+    vector3_t object = {0.f, 0.f, 0.f};
+    vector3_t up = {0.f, 1.f, 0.f};
 
     float aspect_ratio = (float)renderer->extent.width/(float)renderer->extent.height;
     scene_data_t scene_data = {
         .view = camera_matrix(eye, object, up),
-        .projection = perspective_matrix(M_PI_2, aspect_ratio, 0.01f, 100.0f),
+        .projection = perspective_matrix(M_PI_2, aspect_ratio, .1f, 100.0f),
     };
 
-
+    
 
     for(uint32_t i = 0; i < renderer->frame_count; i++) {
         scene_buffer[i] = create_host_buffer(renderer, sizeof(scene_data_t), renderer->queues.graphics_queue);
@@ -556,25 +556,34 @@ void run_fractal(engine_t *engine) {
         d_t = (double)(clock() - time_start)/CLOCKS_PER_SEC - t;
         t += d_t;
         s += d_t;
-        s = 0.1250*t;
+        s = 4.5375 + 0.1250*t;
         double theta = 1.0*s;
 
         aspect_ratio = (float)renderer->extent.width/(float)renderer->extent.height;
         scene_data = (scene_data_t){
-            .view = camera_matrix(eye, object, (vector3_t){0, sin(s), cos(s)}),
+            .view = camera_matrix(eye, object, (vector3_t){0, 1.0, 0.0}),
             .projection = perspective_matrix(M_PI*(0.5), aspect_ratio, 0.01f, 10.0f),
         };
+        /*
+        scene_data = (scene_data_t){
+            .view = identity_matrix(),
+            .projection = identity_matrix(),
+        };*/
         memcpy(scene_buffer[frame_index].mapped_memory, &scene_data, sizeof(scene_data_t));
 
 
         complex float z = 0.5*((cos(theta) - cos(4.00*theta)*0.5) + (sin(theta) - sin(4.00*theta)*0.5)*I);
-        z *= 0.125f;
-        z += 0.65*I;
+        z *= 1.05f;
+        //z += -0.25 + 0.75*I;
+        
+        z = cos(theta) + I*sin(theta);
+        //z *= 0.45f;
+        double phi = 0.5*(1 + sqrt(5));
         compute_push_constants_t push = {
-            .x_min = -1.f,
-            .x_max =  1.f,
-            .y_min = -1.f,
-            .y_max =  1.f,
+            .x_min = -sqrt(2),
+            .x_max =  sqrt(2)*phi,
+            .y_min = -sqrt(2)*0.5*(1 + phi)/aspect_ratio,
+            .y_max =  sqrt(2)*0.5*(1 + phi)/aspect_ratio,
             .z = z,
             .t = s,
         };
@@ -614,9 +623,10 @@ void run_fractal(engine_t *engine) {
         vkCmdSetViewport(current_frame->command_buffer, 0, 1, &viewport);
         vkCmdSetScissor(current_frame->command_buffer, 0, 1, &scissor);
 
-        mesh.push_constant.model = transform(rotation_matrix((vector3_t){0.0, 0.0, 1.0}, 0.5*s), rotation_matrix((vector3_t){0.0, 1.0, 0.0}, M_PI*0.125));
+        //mesh.push_constant.model = transform(rotation_matrix((vector3_t){1.0, 0.0, 1.0}, 0.5*s), rotation_matrix((vector3_t){0.0, 1.0, 0.0}, 0*M_PI*0.125));
         mesh.push_constant.t = s;
-        //mesh.push_constant.model = identity_matrix();
+        mesh.push_constant.model = identity_matrix();
+        mesh.push_constant.model = scaling_matrix((vector3_t){aspect_ratio, 1.0, 1.0});
 
         draw_mesh(current_frame, &mesh, global_sets[frame_index]);
 

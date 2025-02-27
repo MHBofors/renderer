@@ -1,9 +1,9 @@
 #version 460
-#define MAX_ITER 256
-#define PALLETE_SIZE 3
+#define MAX_ITER 512
+#define PALLETE_SIZE 2
 #define PI (3.1415926535897932384626433832795)
 #define PHI 1.618033988
-#define R_SQUARED 1e15
+#define R_SQUARED 1e6
 #define TOL 1e-10
 #define MAX(a,b) (a < b ? b : a)
 #define MIN(a,b) (a < b ? a : b)
@@ -28,19 +28,48 @@ layout(push_constant) uniform constants {
 
 vec2 c = vec2(re, im);
 float s = 1/PI*t;
-
-vec3 palette[PALLETE_SIZE + 1] = {
-    vec3(.83, 0.75, 1),
-    vec3(.33, 0.75, 1),
-    vec3(.67, 0.75, 1),
-    vec3(.83, 0.75, 1)
+/*
+ivec3 palette_a[PALLETE_SIZE] = {
+    ivec3(0xF7, 0x25, 0x85),
+    ivec3(0x72, 0x09, 0xB7),
+    ivec3(0x3a, 0x0c, 0xa3),
+    ivec3(0x43, 0x61, 0xee),
+    ivec3(0x4c, 0xc9, 0xf0)
 };
+
+ivec3 palette_b[PALLETE_SIZE] = {
+    ivec3(0xe6, 0x39, 0x46),
+    ivec3(0xf1, 0xfa, 0xee),
+    ivec3(0xa8, 0xda, 0xdc),
+    ivec3(0x45, 0x7b, 0x9d),
+    ivec3(0x1d, 0x35, 0x57)
+};
+
+ivec3 palette_c[PALLETE_SIZE] = {
+    ivec3(0x38, 0x66, 0x41),
+    ivec3(0x6a, 0x99, 0x4e),
+    ivec3(0xa7, 0xc9, 0x57),
+    ivec3(0xf2, 0xe8, 0xcf),
+    ivec3(0xbc, 0x47, 0x49)
+};
+*/
+
+ivec3 palette_d[PALLETE_SIZE] = {
+    ivec3(112, 66, 20),
+    ivec3(0xff, 0x58, 0x00)
+};
+
+ivec3 palette[PALLETE_SIZE] = palette_d;
 
 /*
 vec3 cross(vec3 u, vec3 v) {
     return vec3(u.y*v.z - u.z*v.y, u.z*v.x - u.x*v.z, u.x*v.y - u.y*v.x);
 }
 */
+
+vec3 hex_to_float(int r, int g, int b) {
+    return vec3(r, g, b)/float(255);
+}
 
 float maximum(float a, float b) {
     return (a < b ? b : a);
@@ -54,8 +83,18 @@ float absolute_value(float x) {
     return (0 < x ? x : -x);
 }
 
+float triangle(float x) {
+    return maximum(0, 1 - absolute_value(2*x - 1));
+}
+
+
+
 float bump(float x) {
     return (absolute_value(x) < 1 ? exp(1/(x*x - 1) + 1) : 0);
+}
+
+float square_wave(float x){
+    return sign(1 - mod(x, 2));
 }
 
 float p(float H){
@@ -72,6 +111,14 @@ float unit_wave(float x) {
 
 float u(float x) {
     return (absolute_value(x - 0.5) < 0.5 ? (1.0 - sqrt(1.0 - (1-x)*(1-x))) : 0);
+}
+
+float basis(float H){
+    float a = 0.05;
+    float b = 1/a;
+    return smoothstep(0, 1, triangle(H));
+    //return maximum(0, minimum(1.0, (1.0 + 0.5*b - absolute_value(b*H))));
+    //return maximum(0, minimum(1.0, 2*(1.0 - absolute_value(H))));
 }
 
 float R(float h) {
@@ -113,8 +160,33 @@ vec3 C_alt(float H) {
     return C*C;
 }
 
+vec3 C_palette_old(float H) {
+    float h = fract(H);
+    uint k_0 = uint(mod(floor(PALLETE_SIZE*h), PALLETE_SIZE));
+    uint k_1 = uint(mod(ceil(PALLETE_SIZE*h), PALLETE_SIZE));
+    vec3 c_0 = hex_to_float(palette[k_0].x, palette[k_0].y, palette[k_0].z);
+    vec3 c_1 = hex_to_float(palette[k_0 + 1].x, palette[k_0 + 1].y, palette[k_0 + 1].z);
+    return (1 - h)*c_0 + h*c_1;
+}
+
+vec3 C_palette(float H) {
+    float h = fract(H);
+    vec3 c = vec3(0);
+    float s = 1;
+
+    for(uint i = 1; i < PALLETE_SIZE; i++) {
+        float b = basis(0.5*(PALLETE_SIZE*h - (i - 1)));
+        s -= b;
+        c += b*hex_to_float(palette[i].x, palette[i].y, palette[i].z);
+    }
+
+    c += s*hex_to_float(palette[0].x, palette[0].y, palette[0].z);
+
+    return c;
+}
+
 vec3 hsv_to_rgb(float H, float S, float V) {
-    return V*(S*(C_alt(H) - 1.0) + 1.0);
+    return V*(S*(C_palette(H) - 1.0) + 1.0);
 }
 
 
@@ -163,7 +235,14 @@ vec2 cpow(vec2 z, float x) {
     return r*vec2(cos(theta), sin(theta));
 }
 
-
+vec2 poly(vec2 z) {
+    int n = 5;
+    vec2 w = vec2(1, 0);
+    for(int i = 0; i < n; i++) {
+        w = cmult(w, z - cexp(vec2(0, (float(i))/float(n)*2*PI - 0*PHI*s)));
+    }
+    return w;
+}
 
 float f(float x) {
     return (1.0 - cos(PI*MAX(0.0, MIN(1.0, x))))*0.5;
@@ -175,6 +254,21 @@ float g(float x, float a, float b) {
 
 float d(vec2 z_0) {
     vec2 z = z_0;
+    
+    vec2 z_2 = cmult(z, z), z_3 = cmult(z_2, z), z_5 = cmult(z_2, z_3);
+    vec2 c_2 = cmult(c, c), c_3 = cmult(c_2, c), c_5 = cmult(c_2, c_3);
+    //z += 0.125*cdiv(vec2(1, 0), z_5);
+    //z += 0.125*cdiv(z_2, vec2(1, 0) + z_5);
+    //c = cdiv(z, c_3);
+    z = (1.5*z + 0.5*cdiv(vec2(1, 0), poly(z_0)));
+    c = cdiv(c, z_0);
+    //z += 0.5*cdiv(vec2(1, 0), z);
+    //c = 0.25*cdiv(z, c_3);
+    //c += 0.05*cdiv(z, c_3);
+    //z *= 0.85;
+    //c = c + 0.25*cdiv(c, cmult(z, z));
+    //c = cdiv(cmult(z, z), vec2(1,0) + c);
+    
     float d_squared = 1.0;
     float m_squared = z.x*z.x + z.y*z.y;
     float a, b;
@@ -281,9 +375,20 @@ vec3 color_arg(vec2 z, float d) {
     float s_1 = 0.95;
     float v_0 = 0.95;
     float v_1 = 0.95;
-    float h = 2*atan(z.x, z.y)/PI-log(d)/8 - s;
-    float s = s_0 + (s_1 - s_0)*(unit_wave(4*s));
-    float v = v_0 + (v_1 - v_0)*(unit_wave(4*s));
+    float h = atan(z.x, z.y)/PI-log(d)/8 - s;
+    float s = s_0 + (s_1 - s_0)*exp(-d);
+    float v = v_0 + (v_1 - v_0)*exp(-d);
+    return vec3(h, s, v);
+}
+
+vec3 color_sepia(vec2 z, float d) {
+    float s_0 = 0.5;
+    float s_1 = 0.75;
+    float v_0 = 0.95;
+    float v_1 = 0.5;
+    float h = 0;
+    float s = s_0 + (s_1 - s_0)*exp(-8*d);
+    float v = (1.0 - u((1 - u(16*d))))*(v_0 + (v_1 - v_0)*exp(-0.25*d));
     return vec3(h, s, v);
 }
 
@@ -296,6 +401,28 @@ vec3 color_mag(vec2 z, float d) {
     float s = s_0 + (s_1 - s_0)*(unit_wave(s));
     float v = v_0 + (v_1 - v_0)*((unit_wave(t)*unit_wave(t)+d));
     return vec3(h, s, v);
+}
+
+vec3 palette_arg(vec2 z, float d) {
+    float s_0 = 0.95;
+    float s_1 = 0.95;
+    float v_0 = 0.95;
+    float v_1 = 0.95;
+    float h = 2*atan(z.x, z.y)/PI-log(d)/8 - s;
+    float s = s_0 + (s_1 - s_0)*(unit_wave(4*s));
+    float v = v_0 + (v_1 - v_0)*(unit_wave(4*s));
+    return C_palette(h);
+}
+
+vec3 palette_spiral(vec2 z, float d) {
+    float s_0 = 0.95;
+    float s_1 = 0.95;
+    float v_0 = 0.95;
+    float v_1 = 0.95;
+    float h = 2*atan(z.x, z.y)/PI-log(d)/8 - s - length(z)*length(z);
+    float s = s_0 + (s_1 - s_0)*(unit_wave(s));
+    float v = v_0 + (v_1 - v_0)*(unit_wave(s));
+    return C_palette(h);
 }
 
 vec3 ccolor(vec2 z) {
@@ -395,14 +522,16 @@ void main() {
         vec2 w = vec2(cos(0.25*t), sin(0.25*t));
         z = cmult(w, z);
         vec3 hsv;
-        hsv = color_arg(z, d);
+        hsv = color_sepia(z, d);
         //hsv = color_mag(z, d);
+        //hsv = palette_spiral(z, d);
         imageStore(image, texel_coordinate, vec4(hsv_to_rgb(hsv.x, hsv.y, hsv.z), 1.0));
+        
     } else {
         vec4 color_gradient = vec4(color_gradient(z, t), 1.0);
+        color_gradient = vec4(0,0,0, 1.0);
         imageStore(image, texel_coordinate, color_gradient);
     }
-
     /*
     if(m >= MAX_ITER-1) {
         vec4 color_gradient = vec4(color_gradient(z, t), 1.0);

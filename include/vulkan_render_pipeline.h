@@ -44,10 +44,11 @@ void set_cull_mode(pipeline_details_t *pipeline_details, VkCullModeFlags cull_mo
 void set_multisampler_none(pipeline_details_t *pipeline_details);
 
 void set_color_blending_none(pipeline_details_t *pipeline_details, VkPipelineColorBlendAttachmentState *color_blend_attachment);
-
 void set_blend_attachment_none(VkPipelineColorBlendAttachmentState *color_blend_attachment);
 
 void set_depth_test_none(pipeline_details_t *pipeline_details);
+void set_depth_test(pipeline_details_t *pipeline_details);
+
 void create_render_pass_depth_buffered(VkRenderPass *render_pass, VkDevice logical_device, VkFormat render_image_format, VkFormat depth_image_format);
 
 VkPipeline create_graphics_pipeline(VkDevice logical_device, VkPipelineLayout pipeline_layout, VkRenderPass render_pass, pipeline_details_t *pipeline_details);
